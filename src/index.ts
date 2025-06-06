@@ -1,16 +1,27 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { connectToDb } from './config/mongodb';
+import userRoutes from './user/user.routes';
 
 dotenv.config();
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+connectToDb();
+
+
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', time: new Date().toISOString() });
 });
+
+//routes
+app.use('/api/user/', userRoutes);
+
+
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
