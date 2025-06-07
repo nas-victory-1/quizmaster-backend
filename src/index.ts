@@ -1,15 +1,29 @@
 import express from 'express';
-import dotenv from 'dotenv'
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { connectToDb } from './config/mongodb';
+import userRoutes from './user/user.routes';
 
+dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
+connectToDb();
 
-app.get('/', (_req, res) => {
-  res.send('API is running');
+
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'OK', time: new Date().toISOString() });
 });
 
+//routes
+app.use('/api/user/', userRoutes);
+
+
+
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
