@@ -24,7 +24,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 //routes
-app.use('/api/user/', userRoutes);
+app.use('/api/auth/', userRoutes);
 app.use('/api/quiz', quizRoutes);
 
 
