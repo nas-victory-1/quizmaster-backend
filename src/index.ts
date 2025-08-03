@@ -9,8 +9,8 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173', // Vite default dev port
-  credentials: true, // in case you need cookies later
+  origin: 'http://localhost:3000', // Vite default dev port
+  credentials: false, // DON'T need cookies 
 }));
 
 app.use(cors());
@@ -24,12 +24,12 @@ app.get('/api/health', (_req, res) => {
 });
 
 //routes
-app.use('/api/auth/', userRoutes);
+app.use('/api/auth', userRoutes);
 app.use('/api/quiz', quizRoutes);
 
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
