@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectToDb } from './config/mongodb';
 import userRoutes from './user/user.routes';
+import quizRoutes from './quiz/quiz.routes';
 
 dotenv.config();
 const app = express();
@@ -19,7 +20,7 @@ app.get('/api/health', (_req, res) => {
 
 //routes
 app.use('/api/user/', userRoutes);
-
+app.use('.api/quiz', quizRoutes);
 
 
 
