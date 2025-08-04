@@ -8,6 +8,11 @@ import quizRoutes from './quiz/quiz.routes';
 dotenv.config();
 const app = express();
 
+app.use(cors({
+  origin: 'http://localhost:3000', // Vite default dev port
+  credentials: false, // DON'T need cookies 
+}));
+
 app.use(cors());
 app.use(express.json());
 connectToDb();
@@ -19,12 +24,12 @@ app.get('/api/health', (_req, res) => {
 });
 
 //routes
-app.use('/api/user/', userRoutes);
-app.use('.api/quiz', quizRoutes);
+app.use('/api/auth', userRoutes);
+app.use('/api/quiz', quizRoutes);
 
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
