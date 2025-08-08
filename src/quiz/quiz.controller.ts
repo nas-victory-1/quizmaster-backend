@@ -23,9 +23,22 @@ export const getAllQuizzes = async(req:Request, res:Response):Promise<void> =>{
     }
 }
 
-export const addQuiz = async(req:Request, res: Response):Promise<void> => {
+export const createQuiz = async(req:Request, res: Response):Promise<void> => {
     try {
-        const { question, options, correctAnswer } = req.body;
+        const { title, description, category, questions, settings } = req.body;
+
+        const newQuiz = await QuizModel.create({
+            title,
+            description,
+            category,
+            questions,
+            settings
+        })
+        res.status(201).json({
+            success: true,
+            message: "Quiz created successfully",
+            data: newQuiz
+        })
         
         
     } catch (error:unknown) {
