@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser'
 import { connectToDb } from './config/mongodb';
 import userRoutes from './user/user.routes';
 import quizRoutes from './quiz/quiz.routes';
@@ -9,12 +10,13 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:3000', // Vite default dev port
-  credentials: false, // DON'T need cookies 
+  origin: 'http://localhost:3000',
+  credentials: true, 
 }));
 
-app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
 connectToDb();
 
 

@@ -6,6 +6,6 @@ import { quizValidator } from './quiz.validator';
 const router = express.Router();
 
 router.get('/quizzes', getAllQuizzes);
-router.post('/create-quiz', quizValidator, validation, createQuiz);
+router.post('/create-quiz', createQuiz);
 
 export default router;

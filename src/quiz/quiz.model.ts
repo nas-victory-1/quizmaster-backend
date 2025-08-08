@@ -6,7 +6,7 @@ const OptionsSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    correctAnswer:{
+    isCorrect:{
         type: Boolean,
         required: true
     },
@@ -23,12 +23,16 @@ const QuestionsSchema = new mongoose.Schema({
     },
     options:{
         type: [OptionsSchema],
-        validate: [arrayLimit, "At least 2 options required"]
+        validate: [optionArrayLimit, "At least 2 options required"]
     }
 })
 
-function arrayLimit(val: any[]) {
+function optionArrayLimit(val: any[]) {
   return val.length >= 2;
+}
+
+function questionArrayLimit(val: any[]) {
+  return val.length >= 1;
 }
 
 const SettingsSchema = new mongoose.Schema({
@@ -67,10 +71,10 @@ const QuizSchema = new mongoose.Schema({
     },
     questions: {
         type: [QuestionsSchema],
-        validate: [arrayLimit, "At least 1 question required"],
+        validate: [questionArrayLimit, "At least 1 question required"],
     },
     settings:{
-        type: [SettingsSchema],
+        type: SettingsSchema,
         default: {},
     }
 

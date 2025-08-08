@@ -25,13 +25,14 @@ export const getAllQuizzes = async(req:Request, res:Response):Promise<void> =>{
 
 export const createQuiz = async(req:Request, res: Response):Promise<void> => {
     try {
-        const { title, description, category, questions } = req.body;
+        const { title, description, category, questions, settings } = req.body;
 
         const newQuiz = await QuizModel.create({
             title,
             description,
             category,
-            questions
+            questions,
+            settings
         })
         res.status(201).json({
             success: true,
