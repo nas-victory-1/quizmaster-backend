@@ -56,3 +56,79 @@ export const createQuiz = async(req:Request, res: Response):Promise<void> => {
     }
 
 }
+
+export const getQuizById = async(req:Request, res:Response):Promise<void> =>{
+    try {
+        const quiz = await QuizModel.findById(req.params.id);
+        if (!quiz){
+            res.status(404).json({ 
+                success: false,
+                message: "Quiz not found" });
+        }
+        res.json(quiz);
+       
+    } catch (error) {
+        if(error instanceof Error){
+            console.error("Error caused by ", error);
+        }else{
+            console.error("Unknown error: ", error)
+        }
+        res.status(500).json({
+            success: false,
+            message: "Internal server error while finding quiz by id"
+        })
+    }
+}
+
+export const deleteQuizById = async(req:Request, res:Response):Promise<void> =>{
+    try {
+        const deleteQuiz = await QuizModel.findByIdAndDelete(req.params.id);
+        if(!deleteQuiz){
+            res.status(404).json({
+                success: false,
+                message: "Quiz not found" });
+        }
+        res.status(200).json({
+            success: true,
+            message: "Quiz deleted successfully"
+        });
+
+    } catch (error) {
+        if(error instanceof Error){
+            console.error("Error caused by ", error);
+        }else{
+            console.error("Unknown error: ", error)
+        }
+        res.status(500).json({
+            success: false,
+            message: "Internal server error while deleting quiz"
+        })
+    } 
+}
+
+export const updateQuiz = async (req: Request, res: Response):Promise<void> => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Find and update the quiz
+    const updatedQuiz = await QuizModel.findByIdAndUpdate(
+      id, 
+      updateData, 
+      { new: true } // Returns the updated document
+    );
+
+    if (!updatedQuiz) {
+        res.status(404).json({
+            success:false,
+            message: 'Quiz not found' });
+    }
+    res.status(200).json(updatedQuiz);
+
+  } catch (error) {
+    console.error('Error updating quiz:', error);
+    res.status(500).json({ 
+        success:false,
+        message: 'Failed to update quiz' });
+  }
+};
