@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import { connectToDb } from './config/mongodb';
 import userRoutes from './user/user.routes';
 import quizRoutes from './quiz/quiz.routes';
+import sessionRoutes from './session/session.routes'
 
 dotenv.config();
 const app = express();
@@ -28,6 +29,7 @@ app.get('/api/health', (_req, res) => {
 //routes
 app.use('/api/auth', userRoutes);
 app.use('/api/quiz', quizRoutes);
+app.use('/api/session', sessionRoutes);
 
 
 
