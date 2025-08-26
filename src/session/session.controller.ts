@@ -1,5 +1,4 @@
-// routes/quiz.ts
-import express, { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import QuizSessionModel from './session.model';
 import { generateUniqueCode, validateQuizCode, generateParticipantId } from '../utils/quizUtils';
 
