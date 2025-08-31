@@ -10,7 +10,9 @@ router.post('/create', createQuizSession);
 router.post('/join', joinQuiz);
 //get sesssion info
 router.get('/:code', getSessionInfo);
+
+
 //start quiz
-router.patch('/start/:sessionId', startQuiz);
+router.post('/start/:sessionId', startQuiz);
 
 export default router;

@@ -1,6 +1,4 @@
-// utils/quizUtils.ts
-import QuizSessionModel from '../session/session.model';
-
+import QuizSessionModel from "../session/session.model";
 
 export const generateUniqueCode = async (): Promise<string> => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

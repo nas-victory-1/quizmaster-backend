@@ -64,7 +64,7 @@ const QuizSessionSchema = new Schema<IQuizSession>({
   },
   expiresAt: {
     type: Date,
-    default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    default: () => new Date(Date.now() + 2400 * 60 * 60 * 1000) // 24 hours
   }
 });
 
