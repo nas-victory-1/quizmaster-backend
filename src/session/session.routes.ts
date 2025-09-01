@@ -1,18 +1,21 @@
 import express from 'express';
-import { createQuizSession, joinQuiz, getSessionInfo, startQuiz } from './session.controller';
-
-
+import { createQuizSession, joinQuiz, getSessionInfo, startQuiz, getSessionById } from './session.controller';
 
 const router = express.Router();
-//create session
+
+// Create session
 router.post('/create', createQuizSession);
-//join with code
-router.post('/join', joinQuiz);
-//get sesssion info
+
+// Join with code
+router.post('/join-quiz', joinQuiz);
+
+// Start quiz
+router.post('/start/:sessionId', startQuiz);
+
+// Get session info by code
 router.get('/:code', getSessionInfo);
 
-
-//start quiz
-router.post('/start/:sessionId', startQuiz);
+// Get session by ID (for waiting room)
+router.get('/session/:sessionId', getSessionById);
 
 export default router;
