@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import QuizSessionModel from './session.model';
 import { generateUniqueCode, validateQuizCode, generateParticipantId } from '../utils/quizUtils';
 
-
 // Create a new quiz session
 export const createQuizSession = async(req:Request, res: Response):Promise<void> => {
   try {
@@ -31,6 +30,7 @@ export const createQuizSession = async(req:Request, res: Response):Promise<void>
     });
     
   } catch (error) {
+    console.error("Error in createQuizSession:", error)
     res.status(500).json({
       success: false,
       error: 'Failed to create quiz session'
@@ -52,12 +52,13 @@ export const joinQuiz = async(req:Request, res: Response):Promise<void> => {
     }
     
     const isValidCode = await validateQuizCode(code);
+    
     if (!isValidCode) {
       res.status(404).json({
         success: false,
         message: 'Invalid or expired quiz code'
       });
-      return
+      return;
     }
     
     const participantId = generateParticipantId();
@@ -88,6 +89,7 @@ export const joinQuiz = async(req:Request, res: Response):Promise<void> => {
       return;
     }
     
+    console.log('Current participants:', session.participants);
     res.status(200).json({
       success: true,
       data: {
@@ -107,7 +109,7 @@ export const joinQuiz = async(req:Request, res: Response):Promise<void> => {
 };
 
 // Get quiz session info
-export const getSessionInfo =  async (req:Request, res:Response):Promise<void> => {
+export const getSessionInfo = async (req:Request, res:Response):Promise<void> => {
   try {
     const { code } = req.params;
     
@@ -138,6 +140,53 @@ export const getSessionInfo =  async (req:Request, res:Response):Promise<void> =
     res.status(500).json({
       success: false,
       message: 'Failed to fetch quiz session'
+    });
+  }
+};
+
+export const getSessionById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { sessionId } = req.params;
+    const { isCreator } = req.query;
+    
+    const session = await QuizSessionModel.findById(sessionId);
+    
+    if (!session) {
+      res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+      return;
+    }
+
+    const baseData = {
+      sessionId: session._id,
+      title: session.title,
+      code: session.code,
+      status: session.status,
+      participantCount: session.participants.length
+    };
+
+    // If creator/host, include participant details
+    if (isCreator === 'true') {
+      res.json({
+        success: true,
+        data: {
+          ...baseData,
+          participants: session.participants
+        }
+      });
+    } else {
+      // If participant, just basic info
+      res.json({
+        success: true,
+        data: baseData
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get session'
     });
   }
 };
