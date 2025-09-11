@@ -164,7 +164,9 @@ export const getSessionById = async (req: Request, res: Response): Promise<void>
       title: session.title,
       code: session.code,
       status: session.status,
-      participantCount: session.participants.length
+      participantCount: session.participants.length,
+      questions: session.questions, // Include questions for quiz play
+      currentQuestionIndex: session.currentQuestionIndex
     };
 
     // If creator/host, include participant details
@@ -177,7 +179,7 @@ export const getSessionById = async (req: Request, res: Response): Promise<void>
         }
       });
     } else {
-      // If participant, just basic info
+      // If participant, just basic info (but still include questions for quiz play)
       res.json({
         success: true,
         data: baseData

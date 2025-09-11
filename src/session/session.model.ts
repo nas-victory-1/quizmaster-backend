@@ -64,13 +64,13 @@ const QuizSessionSchema = new Schema<IQuizSession>({
   },
   expiresAt: {
     type: Date,
-    default: () => new Date(Date.now() + 2400 * 60 * 60 * 1000) // 24 hours
+    default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
   }
 });
 
 // Auto-delete expired sessions
 QuizSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-const QuizSessionModel =  mongoose.model<IQuizSession>('QuizSession', QuizSessionSchema);
+const QuizSessionModel = mongoose.model<IQuizSession>('QuizSession', QuizSessionSchema);
 
 export default QuizSessionModel;
