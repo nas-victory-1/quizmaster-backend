@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
 import QuizModel from "./quiz.model";
+import authorization from "middleware/auth.middleware";
 
 export const getAllQuizzes = async(req:Request, res:Response):Promise<void> =>{
     try {
-        const quizzes = await QuizModel.find();
+        const userId = (req as any).user.id;
+        const quizzes = await QuizModel.find({createdBy:userId}).sort({createdAt:-1});
         res.status(200).json({
             success: true,
             message: "All quizzes retrieved successfully",
@@ -26,13 +28,15 @@ export const getAllQuizzes = async(req:Request, res:Response):Promise<void> =>{
 export const createQuiz = async(req:Request, res: Response):Promise<void> => {
     try {
         const { title, description, category, questions, settings } = req.body;
+        const userId = (req as any).user.id;
 
         const newQuiz = await QuizModel.create({
             title,
             description,
             category,
             questions,
-            settings
+            settings,
+            createdBy: userId,
         })
         res.status(201).json({
             success: true,

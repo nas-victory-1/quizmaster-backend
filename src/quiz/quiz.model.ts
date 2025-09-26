@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 
 const OptionsSchema = new mongoose.Schema({
@@ -76,6 +76,11 @@ const QuizSchema = new mongoose.Schema({
     settings:{
         type: SettingsSchema,
         default: {},
+    },
+    createdBy:{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     }
 
 },{

@@ -169,7 +169,6 @@ export const getSessionById = async (req: Request, res: Response): Promise<void>
       currentQuestionIndex: session.currentQuestionIndex
     };
 
-    // If creator/host, include participant details
     if (isCreator === 'true') {
       res.json({
         success: true,
@@ -224,3 +223,41 @@ export const startQuiz = async (req:Request, res:Response):Promise<void> => {
     });
   }
 };
+
+export const updateParticipantScores = async(req:Request, res:Response):Promise<void> => {
+  try {
+    const { sessionId } = req.params;
+    const { participantId, finalScore } = req.body;
+    
+    const session = await QuizSessionModel.findByIdAndUpdate(
+      sessionId,
+      {
+        $set: {
+          "participants.$[elem].score": finalScore
+        }
+      },
+      {
+        arrayFilters: [{ "elem.id": participantId }],
+        new: true
+      }
+    );
+    
+    if (!session) {
+      res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+      return;
+    }
+    
+    res.json({
+      success: true,
+      message: 'Score updated successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update score'
+    });
+  }
+}

@@ -11,7 +11,7 @@ const authorization = async(req: Request, res: Response, next: NextFunction):Pro
         const cookie = req.cookies?.[cookiename];
         const authHeader = req.headers?.authorization;
 
-        const accessToken = cookie || (authHeader && authHeader.startsWith('Bearer') ? authHeader.split('')[1]: null)
+        const accessToken = cookie || (authHeader && authHeader.startsWith('Bearer') ? authHeader.split(' ')[1]: null)
 
         if(!accessToken){
             res.status(400).json({

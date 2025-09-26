@@ -55,54 +55,62 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    const existingUser = await UserModel.findOne({ email });
-    if (!existingUser) {
-      res.status(401).json({
+    // Validate input
+    if (!email || !password) {
+      res.status(400).json({
         success: false,
-        message: "This email does not have an account",
+        message: "Email and password are required"
       });
       return;
     }
 
-    const correctUser = await bcrypt.compare(password, existingUser.password);
-    if (!correctUser) {
+    const existingUser = await UserModel.findOne({ email });
+    if (!existingUser) {
       res.status(401).json({
         success: false,
-        message: "Incorrect passsword",
+        message: "Invalid email or password"
+      });
+      return;
+    }
+
+    const correctPassword = await bcrypt.compare(password, existingUser.password);
+    if (!correctPassword) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
       });
       return;
     }
 
     if (!process.env.SECRET_KEY) {
-      res.status(400).json({
+      res.status(500).json({
         success: false,
-        message: "Token not set",
+        message: "Server configuration error"
       });
       return;
     }
 
-    //generating the token
-    const token = jwt.sign({ id: existingUser._id }, process.env.SECRET_KEY, {
-      expiresIn: "1d",
-    });
-
-    res.cookie("jwtToken", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000,
-      sameSite: "strict",
-    });
+    // Generate token
+    const token = jwt.sign(
+      { id: existingUser._id, email: existingUser.email }, 
+      process.env.SECRET_KEY,
+      { expiresIn: "1d" }
+    );
 
     const { password: _, ...userWithoutPassword } = existingUser.toObject();
 
     res.status(200).json({
       success: true,
-      message: "Successfully logged in",
-      token,
+      message: "Login successful",
+      token, // Send token in response body (frontend stores in localStorage)
       data: userWithoutPassword,
     });
-    return;
+
   } catch (error) {
-    console.error("Error is ", error);
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
