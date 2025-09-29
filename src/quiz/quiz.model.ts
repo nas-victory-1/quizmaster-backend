@@ -1,31 +1,30 @@
 import mongoose, { Schema } from "mongoose";
 
-
 const OptionsSchema = new mongoose.Schema({
-    text:{
-        type: String,
-        required: true
-    },
-    isCorrect:{
-        type: Boolean,
-        required: true
-    },
-})
+  text: {
+    type: String,
+    required: true,
+  },
+  isCorrect: {
+    type: Boolean,
+    required: true,
+  },
+});
 
 const QuestionsSchema = new mongoose.Schema({
-    text:{
-        type: String,
-        required: true
-    },
-    timeLimit:{
-        type: Number,
-        default: 20
-    },
-    options:{
-        type: [OptionsSchema],
-        validate: [optionArrayLimit, "At least 2 options required"]
-    }
-})
+  text: {
+    type: String,
+    required: true,
+  },
+  timeLimit: {
+    type: Number,
+    default: 20,
+  },
+  options: {
+    type: [OptionsSchema],
+    validate: [optionArrayLimit, "At least 2 options required"],
+  },
+});
 
 function optionArrayLimit(val: any[]) {
   return val.length >= 2;
@@ -58,34 +57,40 @@ const SettingsSchema = new mongoose.Schema({
   },
 });
 
-const QuizSchema = new mongoose.Schema({
-    title:{
-        type: String,
-        required: true
+const QuizSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
     },
-    description:{
-        type:String,
+    description: {
+      type: String,
     },
-    category:{
-        type: String,
+    category: {
+      type: String,
     },
     questions: {
-        type: [QuestionsSchema],
-        validate: [questionArrayLimit, "At least 1 question required"],
+      type: [QuestionsSchema],
+      validate: [questionArrayLimit, "At least 1 question required"],
     },
-    settings:{
-        type: SettingsSchema,
-        default: {},
+    settings: {
+      type: SettingsSchema,
+      default: {},
     },
-    createdBy:{
+    createdBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
-    }
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-},{
-    timestamps: true
-})
+QuizSchema.index({ createdBy: 1 });
+QuizSchema.index({ category: 1 });
+QuizSchema.index({ createdAt: -1 });
 
-const QuizModel = mongoose.model('Quiz', QuizSchema);
+const QuizModel = mongoose.model("Quiz", QuizSchema);
 export default QuizModel;

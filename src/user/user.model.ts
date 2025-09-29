@@ -1,30 +1,27 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-// interface UserInterface {
-//     id: string,
-//     name: string,
-//     email: string,
-//     isAdmin: string,
-//     score: number,// leaderboard score
-//     joinedAt: Date
-// }
-
-const UserSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
-    email:{
-        type: String,
-        required: true
+    email: {
+      type: String,
+      required: true,
+      unique: true, // ADDED UNIQUE CONSTRAINT
     },
-    password:{
-        type: String,
-        required: true
-    }
-},
-    {timestamps: true}
-)
+    password: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+
+// Add indexes
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ createdAt: -1 });
 
 const UserModel = mongoose.model("User", UserSchema);
 export default UserModel;

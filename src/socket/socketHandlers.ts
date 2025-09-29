@@ -1,150 +1,231 @@
-// socket/socketHandlers.ts
-import { Server, Socket } from 'socket.io';
+import { Server, Socket } from "socket.io";
+import jwt from "jsonwebtoken";
+import QuizSessionModel from "../session/session.model";
 
 // Store active sessions and their participants
 const activeSessions = new Map<string, Set<string>>();
 
+// Authentication middleware for sockets
+const authenticateSocket = (socket: Socket, next: (err?: any) => void) => {
+  try {
+    const token = socket.handshake.auth.token;
+
+    if (!token) {
+      return next(new Error("Authentication error: No token provided"));
+    }
+
+    if (!process.env.SECRET_KEY) {
+      return next(new Error("Server configuration error"));
+    }
+
+    const decoded = jwt.verify(token, process.env.SECRET_KEY) as {
+      id: string;
+      email: string;
+    };
+    socket.data.user = decoded;
+    next();
+  } catch (error) {
+    next(new Error("Authentication error: Invalid token"));
+  }
+};
+
+// Verify creator ownership
+const verifyCreator = async (
+  sessionId: string,
+  userId: string
+): Promise<boolean> => {
+  try {
+    const session = await QuizSessionModel.findById(sessionId);
+    return session ? session.creatorId === userId : false;
+  } catch (error) {
+    return false;
+  }
+};
+
 export const setupSocketHandlers = (io: Server) => {
-  io.on('connection', (socket: Socket) => {
-    console.log('User connected:', socket.id);
+  io.use(authenticateSocket);
 
-    // Join a quiz session room
-    socket.on('join-quiz-room', (data: {
-      sessionId: string;
-      participantId?: string;
-      participantName?: string;
-      isCreator?: boolean;
-    }) => {
-      const { sessionId, participantId, participantName, isCreator } = data;
-      
-      console.log(`User ${socket.id} joining room ${sessionId} as ${isCreator ? 'creator' : 'participant'}`);
-      
-      socket.join(sessionId);
-      socket.data.sessionId = sessionId;
-      socket.data.participantId = participantId;
-      socket.data.participantName = participantName;
-      socket.data.isCreator = isCreator;
+  io.on("connection", (socket: Socket) => {
+    console.log("User connected:", socket.id, socket.data.user.email);
 
-      // Update active sessions
-      if (!activeSessions.has(sessionId)) {
-        activeSessions.set(sessionId, new Set());
+    // Join a quiz session room with authentication
+    socket.on(
+      "join-quiz-room",
+      async (data: {
+        sessionId: string;
+        participantId?: string;
+        participantName?: string;
+        isCreator?: boolean;
+      }) => {
+        try {
+          const { sessionId, participantId, participantName, isCreator } = data;
+
+          // Verify creator ownership if claiming to be creator
+          if (isCreator) {
+            const isActualCreator = await verifyCreator(
+              sessionId,
+              socket.data.user.id
+            );
+            if (!isActualCreator) {
+              socket.emit("error", { message: "Not authorized as creator" });
+              return;
+            }
+          }
+
+          console.log(
+            `User ${socket.id} joining room ${sessionId} as ${
+              isCreator ? "creator" : "participant"
+            }`
+          );
+
+          socket.join(sessionId);
+          socket.data.sessionId = sessionId;
+          socket.data.participantId = participantId;
+          socket.data.participantName = participantName;
+          socket.data.isCreator = isCreator;
+
+          // Update active sessions
+          if (!activeSessions.has(sessionId)) {
+            activeSessions.set(sessionId, new Set());
+          }
+
+          if (participantId) {
+            activeSessions.get(sessionId)!.add(participantId);
+          }
+
+          const participantCount = activeSessions.get(sessionId)!.size;
+
+          if (!isCreator && participantId) {
+            socket.to(sessionId).emit("participant-joined", {
+              participantId,
+              participantName,
+              participantCount,
+            });
+          }
+
+          io.to(sessionId).emit("participant-count-update", {
+            participantCount,
+          });
+
+          console.log(
+            `Room ${sessionId} now has ${participantCount} participants`
+          );
+        } catch (error) {
+          socket.emit("error", { message: "Failed to join room" });
+        }
       }
+    );
 
-      // Only add to participant count if they have a participantId (real participants)
-      if (participantId) {
-        activeSessions.get(sessionId)!.add(participantId);
-      }
+    // Start quiz (creator only) with verification
+    socket.on("start-quiz", async (data: { sessionId: string }) => {
+      try {
+        const { sessionId } = data;
 
-      const participantCount = activeSessions.get(sessionId)!.size;
+        const isCreator = await verifyCreator(sessionId, socket.data.user.id);
+        if (!isCreator) {
+          socket.emit("error", {
+            message: "Only quiz creator can start the quiz",
+          });
+          return;
+        }
 
-      // Notify others in the room about new participant (if not creator and has participantId)
-      if (!isCreator && participantId) {
-        socket.to(sessionId).emit('participant-joined', {
-          participantId,
-          participantName,
-          participantCount
-        });
-      }
-
-      // Send current participant count to everyone in the room
-      io.to(sessionId).emit('participant-count-update', {
-        participantCount
-      });
-
-      console.log(`Room ${sessionId} now has ${participantCount} participants`);
-    });
-
-    // Start quiz (creator only)
-    socket.on('start-quiz', (data: { sessionId: string }) => {
-      const { sessionId } = data;
-      console.log(`Quiz start requested for session ${sessionId} by ${socket.id}`);
-      
-      if (socket.data.isCreator) {
         console.log(`Starting quiz for session ${sessionId}`);
-        io.to(sessionId).emit('quiz-started', {
+        io.to(sessionId).emit("quiz-started", {
           sessionId,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
-      } else {
-        console.log(`Non-creator ${socket.id} tried to start quiz`);
+      } catch (error) {
+        socket.emit("error", { message: "Failed to start quiz" });
       }
     });
-
     // Send next question (creator only)
-    socket.on('next-question', (data: {
-      sessionId: string;
-      question: any;
-      questionIndex: number;
-      timeLimit: number;
-    }) => {
-      const { sessionId, question, questionIndex, timeLimit } = data;
-      
-      if (socket.data.isCreator) {
-        console.log(`Sending question ${questionIndex} for session ${sessionId}`);
-        io.to(sessionId).emit('new-question', {
-          question,
-          questionIndex,
-          timeLimit,
-          timestamp: Date.now()
-        });
+    socket.on(
+      "next-question",
+      (data: {
+        sessionId: string;
+        question: any;
+        questionIndex: number;
+        timeLimit: number;
+      }) => {
+        const { sessionId, question, questionIndex, timeLimit } = data;
+
+        if (socket.data.isCreator) {
+          console.log(
+            `Sending question ${questionIndex} for session ${sessionId}`
+          );
+          io.to(sessionId).emit("new-question", {
+            question,
+            questionIndex,
+            timeLimit,
+            timestamp: Date.now(),
+          });
+        }
       }
-    });
+    );
 
     // Handle participant answers
-    socket.on('submit-answer', (data: {
-      sessionId: string;
-      participantId: string;
-      questionIndex: number;
-      answer: any;
-      timeToAnswer: number;
-    }) => {
-      const { sessionId, participantId, questionIndex, answer, timeToAnswer } = data;
-      
-      console.log(`Answer received from ${participantId} for question ${questionIndex}`);
-      
-      // Broadcast to quiz creator and other participants if needed
-      socket.to(sessionId).emit('answer-received', {
-        participantId,
-        questionIndex,
-        answer,
-        timeToAnswer,
-        timestamp: Date.now()
-      });
-    });
+    socket.on(
+      "submit-answer",
+      (data: {
+        sessionId: string;
+        participantId: string;
+        questionIndex: number;
+        answer: any;
+        timeToAnswer: number;
+      }) => {
+        const {
+          sessionId,
+          participantId,
+          questionIndex,
+          answer,
+          timeToAnswer,
+        } = data;
+
+        console.log(
+          `Answer received from ${participantId} for question ${questionIndex}`
+        );
+
+        // Broadcast to quiz creator and other participants if needed
+        socket.to(sessionId).emit("answer-received", {
+          participantId,
+          questionIndex,
+          answer,
+          timeToAnswer,
+          timestamp: Date.now(),
+        });
+      }
+    );
 
     // Show results (creator only)
-    socket.on('show-results', (data: {
-      sessionId: string;
-      results: any;
-    }) => {
+    socket.on("show-results", (data: { sessionId: string; results: any }) => {
       const { sessionId, results } = data;
-      
+
       if (socket.data.isCreator) {
         console.log(`Showing results for session ${sessionId}`);
-        io.to(sessionId).emit('results-ready', {
+        io.to(sessionId).emit("results-ready", {
           results,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     });
 
     // End quiz (creator only)
-    socket.on('end-quiz', (data: { sessionId: string }) => {
+    socket.on("end-quiz", (data: { sessionId: string }) => {
       const { sessionId } = data;
-      
+
       if (socket.data.isCreator) {
         console.log(`Ending quiz for session ${sessionId}`);
-        io.to(sessionId).emit('quiz-ended', {
+        io.to(sessionId).emit("quiz-ended", {
           sessionId,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     });
 
     // Handle disconnection
-    socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
-      
+    socket.on("disconnect", () => {
+      console.log("User disconnected:", socket.id);
+
       const sessionId = socket.data.sessionId;
       const participantId = socket.data.participantId;
       const isCreator = socket.data.isCreator;
@@ -153,27 +234,29 @@ export const setupSocketHandlers = (io: Server) => {
         // Remove participant from active session if they had a participantId
         if (participantId) {
           activeSessions.get(sessionId)!.delete(participantId);
-          
+
           const participantCount = activeSessions.get(sessionId)!.size;
-          
+
           // Notify others about participant leaving
-          socket.to(sessionId).emit('participant-left', {
+          socket.to(sessionId).emit("participant-left", {
             participantId,
-            participantCount
+            participantCount,
           });
 
           // Update participant count for everyone
-          socket.to(sessionId).emit('participant-count-update', {
-            participantCount
+          socket.to(sessionId).emit("participant-count-update", {
+            participantCount,
           });
 
-          console.log(`Participant ${participantId} left session ${sessionId}. ${participantCount} remaining.`);
+          console.log(
+            `Participant ${participantId} left session ${sessionId}. ${participantCount} remaining.`
+          );
         }
 
         // If creator disconnects, notify participants
         if (isCreator) {
-          socket.to(sessionId).emit('creator-disconnected', {
-            sessionId
+          socket.to(sessionId).emit("creator-disconnected", {
+            sessionId,
           });
         }
 
@@ -186,16 +269,16 @@ export const setupSocketHandlers = (io: Server) => {
     });
 
     // Get session info
-    socket.on('get-session-info', (data: { sessionId: string }) => {
+    socket.on("get-session-info", (data: { sessionId: string }) => {
       const { sessionId } = data;
-      const participantCount = activeSessions.has(sessionId) 
-        ? activeSessions.get(sessionId)!.size 
+      const participantCount = activeSessions.has(sessionId)
+        ? activeSessions.get(sessionId)!.size
         : 0;
 
-      socket.emit('session-info', {
+      socket.emit("session-info", {
         sessionId,
         participantCount,
-        isActive: activeSessions.has(sessionId)
+        isActive: activeSessions.has(sessionId),
       });
     });
   });
