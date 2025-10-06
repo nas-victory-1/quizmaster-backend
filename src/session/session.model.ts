@@ -26,7 +26,7 @@ const QuizSessionSchema = new Schema<IQuizSession>({
   code: {
     type: String,
     required: true,
-    unique: true,
+    unique: true, // already creates an index
     length: 6,
   },
   title: {
@@ -72,12 +72,10 @@ const QuizSessionSchema = new Schema<IQuizSession>({
   },
 });
 
-// Auto-delete expired sessions
+// ✅ Keep only unique, non-duplicate indexes
 QuizSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-QuizSessionSchema.index({ code: 1 }, { unique: true });
 QuizSessionSchema.index({ creatorId: 1 });
 QuizSessionSchema.index({ status: 1 });
-QuizSessionSchema.index({ expiresAt: 1 });
 QuizSessionSchema.index({ createdAt: -1 });
 
 const QuizSessionModel = mongoose.model<IQuizSession>(

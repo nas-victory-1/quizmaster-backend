@@ -54,10 +54,6 @@ connectToDb();
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "OK",
-    time: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV || "development",
   });
 });
 
@@ -67,7 +63,7 @@ app.use("/api/quiz", quizRoutes);
 app.use("/api/session", sessionRoutes);
 
 // 404 handler
-app.use("*", (req, res) => {
+app.use("/", (req, res) => {
   res.status(404).json({
     success: false,
     message: `Route ${req.originalUrl} not found`,
@@ -108,7 +104,6 @@ process.on("SIGTERM", () => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
 
 export { io };

@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true, // ADDED UNIQUE CONSTRAINT
+      unique: true,
     },
     password: {
       type: String,
@@ -19,8 +19,6 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Add indexes
-UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ createdAt: -1 });
 
 const UserModel = mongoose.model("User", UserSchema);
