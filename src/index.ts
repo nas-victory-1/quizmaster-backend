@@ -18,51 +18,53 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
-// Socket.IO setup
+// ✅ Allow both deployed frontend and localhost for development
+const allowedOrigins = [
+  process.env.CLIENT_URL, // your deployed frontend (from .env)
+  "http://localhost:3000", // for local testing
+].filter(Boolean);
+
+// ✅ CORS setup for both REST and Socket.IO
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-// Security Middleware
+// ✅ Essential middleware
 app.use(securityMiddleware);
-
 app.use(requestLogger);
-
-// CORS Middleware
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  })
-);
-
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// Rate limiting
-app.use("/api/auth", authLimiter); // Stricter limits for auth
-app.use("/api/", apiLimiter); // General API limits
+// ✅ Rate limiting
+app.use("/api/auth", authLimiter);
+app.use("/api/", apiLimiter);
 
-// Database connection
+// ✅ Connect to DB
 connectToDb();
 
-// Enhanced health check
+// ✅ Health check route
 app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "OK",
-  });
+  res.json({ status: "OK" });
 });
 
-// Routes
+// ✅ API routes
 app.use("/api/auth", userRoutes);
 app.use("/api/quiz", quizRoutes);
 app.use("/api/session", sessionRoutes);
 
-// 404 handler
+// ✅ 404 handler
 app.use("/", (req, res) => {
   res.status(404).json({
     success: false,
@@ -70,18 +72,16 @@ app.use("/", (req, res) => {
   });
 });
 
+// ✅ Error loggers and global handler
 app.use(errorLogger);
-
-// Global error handler
 app.use((error: any, req: any, res: any, next: any) => {
   console.error("Global error handler:", error);
 
   if (error.type === "entity.parse.failed") {
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: "Invalid JSON in request body",
     });
-    return;
   }
 
   res.status(500).json({
@@ -90,17 +90,16 @@ app.use((error: any, req: any, res: any, next: any) => {
   });
 });
 
-// Setup Socket.IO handlers
+// ✅ Socket handlers
 setupSocketHandlers(io);
 
-// Graceful shutdown
+// ✅ Graceful shutdown
 process.on("SIGTERM", () => {
   console.log("SIGTERM received, shutting down gracefully");
-  server.close(() => {
-    console.log("Process terminated");
-  });
+  server.close(() => console.log("Process terminated"));
 });
 
+// ✅ Server start
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
